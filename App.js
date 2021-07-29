@@ -1,18 +1,42 @@
 import { StatusBar } from 'expo-status-bar';
+import { Alert } from 'react-native';
 import React from 'react';
 import Loading from "./Loading";
 import * as Location from 'expo-location';
+import axios from "axios";
+import Weather from "./Weather"
+
+const API_KEY = "86a329967b192188a8eef33c2663bae4";
 
 export default class extends React.Component {
-  getLocation = async() => {
-    const location = await Location.getCurrentPositionAsync();
-    console.log(location);
+  state = {
+    isLoading: true
+  };
+
+  getWeather = async (latitude, longitude) => {
+    const { data } = await axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${API_KEY}&units=metric`);
+    this.setState({ isLoading: false, temp: data.main.temp });
+  }
+
+  getLocation = async () => {
+    try {
+      const response = await Location.requestForegroundPermissionsAsync();
+      const { coords: { latitude, longitude } } = await Location.getCurrentPositionAsync();
+      this.getWeather(latitude, longitude);
+      this.setState({ isLoading: false });
+
+      // send to api and get weather
+
+    } catch (error) {
+      Alert.alert("cannot request the permission")
+    }
   }
   componentDidMount(){
     this.getLocation();
   }
 
   render() {
-    return <Loading />;
+    const { isLoading, temp } = this.state;
+    return isLoading ? <Loading /> : <Weather temp={Math.round(temp)} />;
   }
 }
